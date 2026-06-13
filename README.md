@@ -7,7 +7,16 @@ A tiny macOS menu bar utility that adds two missing clipboard features:
 
 Passwords are safe: copies marked as concealed (the convention used by password managers, `org.nspasteboard.ConcealedType`) are never recorded.
 
-## Build & run
+## Install
+
+**Download the app:** grab `StackClip.zip` from the [Releases](https://github.com/nonamexishere/StackClip/releases) page, unzip it, and drag **StackClip.app** to your Applications folder.
+
+Because the app isn't notarized yet, the first launch needs a right-click: **right-click StackClip.app → Open → Open**. After that it opens normally.
+
+1. Click the menu bar icon → **Launch at Login** so it starts automatically.
+2. The first time you press ⌘⇧C, grant **Accessibility** access when prompted (or via the menu's warning item) so it can read your selection.
+
+## Build from source
 
 Requires macOS 13+ and Xcode (or the Swift toolchain).
 
@@ -20,7 +29,7 @@ Or during development: `swift run StackClip`.
 
 ## Accessibility permission
 
-Append copy works by simulating ⌘C, which macOS gates behind the **Accessibility** permission. While permission is missing, the status menu shows a **"⚠️ Append Copy needs Accessibility access…"** item at the top — click it to jump straight to **System Settings → Privacy & Security → Accessibility**. Pressing ⌘⇧C without permission beeps and opens the same pane. Grant the permission, then restart the app.
+Append copy reads your current selection through the macOS **Accessibility** API, so the app needs Accessibility access. While permission is missing, the status menu shows a **"⚠️ Append Copy needs Accessibility access…"** item — click it to jump straight to **System Settings → Privacy & Security → Accessibility**. Pressing ⌘⇧C without permission beeps and opens the same pane. Grant the permission, then restart the app.
 
 Note: when you launch StackClip from a terminal, macOS attributes the permission to your *terminal app* — grant it there and it persists across rebuilds. If you run the binary directly, the grant is tied to the binary's signature and resets on every rebuild.
 
@@ -35,7 +44,8 @@ Note: when you launch StackClip from a terminal, macOS attributes the permission
 ## Roadmap
 
 - [x] Configurable separator (newline / space / tab)
-- [ ] Proper `.app` bundle + signed releases (Homebrew cask)
+- [x] Proper `.app` bundle + downloadable release + Launch at Login
+- [ ] Signed & notarized build (Homebrew cask)
 - [ ] Configurable hotkey
 - [ ] Paste-on-click option for history items
 

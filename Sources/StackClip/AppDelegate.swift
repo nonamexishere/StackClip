@@ -79,6 +79,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let clear = NSMenuItem(title: "Clear History", action: #selector(clearHistory), keyEquivalent: "")
         clear.target = self
         menu.addItem(clear)
+        addLoginItemToggle(to: menu)
         menu.addItem(NSMenuItem(title: "Quit StackClip",
                                 action: #selector(NSApplication.terminate(_:)),
                                 keyEquivalent: "q"))
@@ -144,5 +145,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc private func clearHistory() {
         history.clear()
+    }
+
+    // Only meaningful when running as the bundled .app (SMAppService needs a
+    // bundle identifier); hidden when running the bare SPM binary in dev.
+    private func addLoginItemToggle(to menu: NSMenu) {
+        guard Bundle.main.bundleIdentifier != nil else { return }
+        let item = NSMenuItem(title: "Launch at Login",
+                              action: #selector(toggleLoginItem), keyEquivalent: "")
+        item.target = self
+        item.state = LoginItem.isEnabled ? .on : .off
+        menu.addItem(item)
+    }
+
+    @objc private func toggleLoginItem() {
+        LoginItem.toggle()
+        rebuildMenu()
     }
 }
