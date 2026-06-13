@@ -3,10 +3,14 @@ import AppKit
 final class ClipboardHistory {
     static let maxItems = 50
     private static let defaultsKey = "history"
+    private static let pinnedKey = "pinned"
     // Set by password managers (and others) on copies that must not be recorded.
     private static let concealedType = NSPasteboard.PasteboardType("org.nspasteboard.ConcealedType")
 
     private(set) var items: [String]
+    // Favorites the user has pinned; persisted separately so they survive a
+    // history clear and render in their own menu section.
+    private(set) var pinned: [String]
     var onChange: (() -> Void)?
 
     private let pasteboard = NSPasteboard.general
@@ -15,6 +19,7 @@ final class ClipboardHistory {
 
     init() {
         items = UserDefaults.standard.stringArray(forKey: Self.defaultsKey) ?? []
+        pinned = UserDefaults.standard.stringArray(forKey: Self.pinnedKey) ?? []
         lastChangeCount = pasteboard.changeCount
     }
 
@@ -36,6 +41,29 @@ final class ClipboardHistory {
     func clear() {
         items = []
         save()
+        onChange?()
+    }
+
+    func isPinned(_ item: String) -> Bool {
+        pinned.contains(item)
+    }
+
+    // Pin/unpin a value. Pins are de-duplicated and capped at maxItems so the
+    // section can't grow without bound; newest pin floats to the top.
+    func pin(_ item: String) {
+        guard !pinned.contains(item) else { return }
+        pinned.insert(item, at: 0)
+        if pinned.count > Self.maxItems {
+            pinned.removeLast(pinned.count - Self.maxItems)
+        }
+        savePinned()
+        onChange?()
+    }
+
+    func unpin(_ item: String) {
+        guard let index = pinned.firstIndex(of: item) else { return }
+        pinned.remove(at: index)
+        savePinned()
         onChange?()
     }
 
@@ -61,5 +89,9 @@ final class ClipboardHistory {
 
     private func save() {
         UserDefaults.standard.set(items, forKey: Self.defaultsKey)
+    }
+
+    private func savePinned() {
+        UserDefaults.standard.set(pinned, forKey: Self.pinnedKey)
     }
 }

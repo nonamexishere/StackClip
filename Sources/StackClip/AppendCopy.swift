@@ -139,12 +139,26 @@ enum AppendCopy {
     }
 
     private static func simulateCmdC() {
-        // A .privateState source keeps the injected event's modifiers isolated
-        // from the live keyboard so the explicit .maskCommand below is what the
-        // frontmost app sees.
+        simulateCommandKey(kVK_ANSI_C)
+    }
+
+    /// Simulate ⌘V into the frontmost app, e.g. to paste a freshly-picked
+    /// history item. No-op unless Accessibility is granted (posting key events
+    /// silently fails otherwise); callers fire this only after the menu has
+    /// closed so focus is back on the target app.
+    static func simulatePaste() {
+        guard AXIsProcessTrusted() else { return }
+        simulateCommandKey(kVK_ANSI_V)
+    }
+
+    /// Post a ⌘+<key> chord. The .privateState source keeps the injected
+    /// event's modifiers isolated from the live keyboard so the explicit
+    /// .maskCommand below is exactly what the frontmost app sees — the same
+    /// guard that keeps a held Shift from corrupting a synthetic ⌘C.
+    private static func simulateCommandKey(_ keyCode: Int) {
         let source = CGEventSource(stateID: .privateState)
-        let keyDown = CGEvent(keyboardEventSource: source, virtualKey: CGKeyCode(kVK_ANSI_C), keyDown: true)
-        let keyUp = CGEvent(keyboardEventSource: source, virtualKey: CGKeyCode(kVK_ANSI_C), keyDown: false)
+        let keyDown = CGEvent(keyboardEventSource: source, virtualKey: CGKeyCode(keyCode), keyDown: true)
+        let keyUp = CGEvent(keyboardEventSource: source, virtualKey: CGKeyCode(keyCode), keyDown: false)
         keyDown?.flags = .maskCommand
         keyUp?.flags = .maskCommand
         keyDown?.post(tap: .cghidEventTap)
