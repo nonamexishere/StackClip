@@ -76,15 +76,23 @@ final class ClipboardHistory {
     }
 
     private func record(_ text: String) {
-        if let existing = items.firstIndex(of: text) {
-            items.remove(at: existing)
-        }
-        items.insert(text, at: 0)
-        if items.count > Self.maxItems {
-            items.removeLast(items.count - Self.maxItems)
-        }
+        items = Self.inserting(text, into: items)
         save()
         onChange?()
+    }
+
+    /// Move/insert `text` at the front of `list`, de-duplicated and capped at
+    /// `max`. Pure so it can be unit-tested without the pasteboard or defaults.
+    static func inserting(_ text: String, into list: [String], max: Int = maxItems) -> [String] {
+        var result = list
+        if let existing = result.firstIndex(of: text) {
+            result.remove(at: existing)
+        }
+        result.insert(text, at: 0)
+        if result.count > max {
+            result.removeLast(result.count - max)
+        }
+        return result
     }
 
     private func save() {

@@ -8,6 +8,7 @@ let package = Package(
         // tools 5.9 ⇒ Swift 5 language mode by default, which keeps strict
         // concurrency as warnings and lets the package build on both Swift
         // 5.10 and 6.x toolchains.
-        .executableTarget(name: "StackClip")
+        .executableTarget(name: "StackClip"),
+        .testTarget(name: "StackClipTests", dependencies: ["StackClip"]),
     ]
 )
