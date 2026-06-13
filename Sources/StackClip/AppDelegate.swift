@@ -7,6 +7,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSSear
     private let history = ClipboardHistory()
     private let hotKey = HotKeyManager()
     private var pendingIconRevert: DispatchWorkItem?
+    // The configured global shortcut (defaults to ⌘⇧C) and the lazily-created
+    // Preferences window that edits it.
+    private var shortcut = Shortcut.current
+    private var preferences: PreferencesWindowController?
 
     // Whether picking an item should auto-paste it into the previously-focused
     // app. Persisted; default OFF.
@@ -64,7 +68,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSSear
         history.startMonitoring()
         rebuildMenu()
 
-        hotKey.register { [weak self] in
+        shortcut = Shortcut.current
+        hotKey.register(keyCode: shortcut.keyCode, modifiers: shortcut.modifiers) { [weak self] in
             AppendCopy.perform(onSuccess: { self?.showAppendSuccess() },
                                onFailure: { NSSound.beep() })
         }
@@ -132,7 +137,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSSear
         }
 
         menu.addItem(.separator())
-        let hint = NSMenuItem(title: "⌘⇧C  Append copy", action: nil, keyEquivalent: "")
+        let hint = NSMenuItem(title: "\(shortcut.displayString)  Append copy", action: nil, keyEquivalent: "")
         hint.isEnabled = false
         menu.addItem(hint)
         menu.addItem(separatorPreferenceItem())
@@ -142,6 +147,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSSear
         let clear = NSMenuItem(title: "Clear History", action: #selector(clearHistory), keyEquivalent: "")
         clear.target = self
         menu.addItem(clear)
+        let prefs = NSMenuItem(title: "Preferences…", action: #selector(showPreferences), keyEquivalent: ",")
+        prefs.target = self
+        menu.addItem(prefs)
         addLoginItemToggle(to: menu)
         menu.addItem(NSMenuItem(title: "Quit StackClip",
                                 action: #selector(NSApplication.terminate(_:)),
@@ -354,5 +362,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSSear
     @objc private func toggleLoginItem() {
         LoginItem.toggle()
         rebuildMenu()
+    }
+
+    // Opens the Preferences window, creating it on first use. StackClip is an
+    // .accessory app that normally never becomes active, so a plain orderFront
+    // would leave the recorder field unable to receive key events; activating the
+    // app first makes this regular titled window key and lets it capture chords.
+    @objc private func showPreferences() {
+        if preferences == nil {
+            let controller = PreferencesWindowController(shortcut: shortcut)
+            controller.onChange = { [weak self] newShortcut in
+                self?.applyShortcut(newShortcut)
+            }
+            preferences = controller
+        }
+        preferences?.setShortcut(shortcut)
+        NSApp.activate(ignoringOtherApps: true)
+        preferences?.showWindow(nil)
+        preferences?.window?.makeKeyAndOrderFront(nil)
+    }
+
+    // Persists a newly chosen chord and re-registers the global hotkey so it takes
+    // effect immediately. If the OS rejects the new combo, keep the old binding,
+    // beep, and revert the recorder's display.
+    private func applyShortcut(_ newShortcut: Shortcut) {
+        guard hotKey.update(keyCode: newShortcut.keyCode, modifiers: newShortcut.modifiers) else {
+            NSSound.beep()
+            hotKey.update(keyCode: shortcut.keyCode, modifiers: shortcut.modifiers)
+            preferences?.setShortcut(shortcut)
+            return
+        }
+        shortcut = newShortcut
+        Shortcut.current = shortcut
     }
 }

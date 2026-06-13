@@ -1,4 +1,5 @@
 import XCTest
+import Carbon.HIToolbox
 @testable import StackClip
 
 final class HistoryInsertTests: XCTestCase {
@@ -39,5 +40,33 @@ final class SeparatorTests: XCTestCase {
     func testMenuTitlesAreDistinct() {
         let titles = Set(AppendCopy.Separator.allCases.map(\.menuTitle))
         XCTAssertEqual(titles.count, AppendCopy.Separator.allCases.count)
+    }
+}
+
+final class ShortcutFormatterTests: XCTestCase {
+    func testCarbonModifiersFromCocoaFlags() {
+        XCTAssertEqual(Shortcut.carbonModifiers(from: [.command, .shift]),
+                       UInt32(cmdKey | shiftKey))
+        XCTAssertEqual(Shortcut.carbonModifiers(from: [.option]), UInt32(optionKey))
+        XCTAssertEqual(Shortcut.carbonModifiers(from: []), 0)
+    }
+
+    func testDefaultIsCommandShiftC() {
+        XCTAssertEqual(Shortcut.appendCopyDefault.displayString, "⇧⌘C")
+    }
+
+    func testModifierGlyphOrdering() {
+        let mods = UInt32(cmdKey | controlKey | optionKey | shiftKey)
+        XCTAssertEqual(Shortcut.displayString(keyCode: UInt32(kVK_Space), modifiers: mods),
+                       "⌃⌥⇧⌘Space")
+    }
+
+    func testUnknownKeyFallsBack() {
+        XCTAssertEqual(Shortcut.keyName(for: 9999), "Key (9999)")
+    }
+
+    func testFunctionKeyMembership() {
+        XCTAssertTrue(Shortcut.functionKeyCodes.contains(kVK_F5))
+        XCTAssertFalse(Shortcut.functionKeyCodes.contains(kVK_ANSI_A))
     }
 }
