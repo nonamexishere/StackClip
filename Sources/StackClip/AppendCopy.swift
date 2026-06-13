@@ -67,10 +67,15 @@ enum AppendCopy {
     }
 
     private static func simulateCmdC() {
-        let source = CGEventSource(stateID: .combinedSessionState)
+        // A .privateState source keeps the injected event's modifiers isolated
+        // from the live keyboard. This matters because the hotkey is Cmd+Shift+C:
+        // the user is usually still holding Shift when this fires, and a
+        // .combinedSessionState source would merge that Shift back in, so the
+        // frontmost app would see Cmd+Shift+C (not a copy) and nothing would be
+        // copied. With .privateState the flags we set below are authoritative.
+        let source = CGEventSource(stateID: .privateState)
         let keyDown = CGEvent(keyboardEventSource: source, virtualKey: CGKeyCode(kVK_ANSI_C), keyDown: true)
         let keyUp = CGEvent(keyboardEventSource: source, virtualKey: CGKeyCode(kVK_ANSI_C), keyDown: false)
-        // Plain Cmd, even though the user is physically holding Cmd+Shift for the hotkey.
         keyDown?.flags = .maskCommand
         keyUp?.flags = .maskCommand
         keyDown?.post(tap: .cghidEventTap)
