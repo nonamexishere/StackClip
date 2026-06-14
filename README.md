@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/banner.png" alt="StackClip" width="640"></p>
+
 # StackClip
 
 A tiny macOS menu bar utility that adds two missing clipboard features:
